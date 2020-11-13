@@ -1,0 +1,80 @@
+---
+title: "Untitled"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Markdown text has formatting directives
+
+## Lists
+
+I am creating lists. More text here.  *This is italic*
+
+### List one
+
+This is a numbered list
+
+1. number one
+2. number two
+3. number three
+
+### List two
+
+This is a fruit list
+
+1. banana
+2. apple
+3. strawberry
+
+[Link text](http://nceas.ucsb.edu)
+
+$\sum {n+1}$
+
+```{r}
+library(readr)
+```
+
+# Introduction
+
+This dataset came from here [link] (https://doi.org/10.18739/A25T3FZ8X)
+
+* read in data
+
+```{r chunk1, message=FALSE}
+bg_chem <- read_csv("BGchem2008data.csv")
+```
+
+
+# Analysis
+
+* calculate summary statistics
+
+We are interested in nutrient concentrations over the whole water column, so we calculate the mean value of nutrients of interest
+
+```{r}
+nitrate <- mean(bg_chem$NO3)
+nitrite <- mean(bg_chem$NO2)
+amm <- mean(bg_chem$NH4)
+phos <- mean(bg_chem$P)
+```
+
+
+* calculate mean Redfield ratio
+
+```{r}
+ratio <- (nitrate + nitrite + amm)/phos
+ratio
+```
+
+We calculated the redfield ratio to be `r round(ratio) `
+
+
+* plot Redfield ratio 
+
+```{r}
+plot(bg_chem$P, bg_chem$NO2 + bg_chem$NO3 + bg_chem$NH4)
+```
+
