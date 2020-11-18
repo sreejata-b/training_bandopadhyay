@@ -1,0 +1,147 @@
+---
+title: "Untitled"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, messgae=F}
+library(rvest)
+library(readr)
+library(dplyr)
+library(janitor)
+```
+
+```{r}
+webpage <- read_html("https://www.pwrc.usgs.gov/bbl/manual/speclist.cfm")
+
+tbls <- html_nodes(webpage, "table") %>% 
+    html_table(fill = TRUE)
+
+species <- tbls[[1]] %>% 
+    clean_names() %>% 
+    select(alpha_code, common_name) %>% 
+    mutate(alpha_code = tolower(alpha_code))
+```
+
+```{r}
+View(species)
+```
+
+```{r, message = F}
+predator<- read_csv("https://arcticdata.io/metacat/d1/mn/v2/object/urn%3Auuid%3A9ffec04c-7e2d-41dd-9e88-b6c2e8c4375e")
+nest<- read_csv("https://arcticdata.io/metacat/d1/mn/v2/object/urn%3Auuid%3A982bd2fc-4edf-4da7-96ef-0d11b853102d")
+```
+
+```{r}
+View(predator)
+View(nest)
+```
+
+```{r}
+get_species_name <- function(data, species) {
+  get_df <- left_join(data, species, by = c("species" = "alpha_code"))
+  return(get_df)
+}
+```
+
+```{r}
+assign_species_name <- function(df, species){
+    if (!("alpha_code" %in% names(species)) |
+        !("species" %in% names(df)) |
+        !("common_name" %in% names(species))){
+      stop("Tables appear to be formatted incorrectly.")
+    }  
+  
+    return_df <- left_join(df, species, by = c("species" = "alpha_code"))
+    
+    if (nrow(return_df) > nrow(df)){
+      warning("Joined table has more rows than original table. Check species table for duplicated code values.")
+    }
+    
+    if (length(which(is.na(return_df$common_name))) > 0){
+      x <- length(which(is.na(return_df$common_name)))
+      warning(paste("Common name has", x, "rows containing NA"))
+    }
+    
+    return(return_df)
+        
+}
+```
+
+
+
+
+
+
+```{r}
+predator_species <- get_species_name(predator, species) %>% 
+    group_by(year, common_name) %>% 
+    summarise(pred_count = sum(count, na.rm = T))%>% 
+    filter(!is.na(common_name))
+```
+
+```{r}
+View(predator_species)
+```
+
+```{r}
+library(gp)
+ggplot(predator_species, aes(x = year, y = pred_count, color = common_name)) +
+  geom_line() +
+  geom_point() +
+  labs(x = "Year", y = "Number of Predators", color = "Species") +
+  theme_bw()
+```
+
+
+
+```{r}
+View(nest)
+colnames(nest)
+names(nest)
+```
+
+```{r}
+nest_species <- get_species_name(nest, species) %>% 
+  group_by(common_name, year) %>% 
+  summarise(total_predated = sum(number_eggs_predated, na.rm = T),
+            .groups = "drop") %>% 
+  filter(!is.na(common_name))
+
+View(nest_species)
+```
+
+
+```{r}
+pred_total <- predator_species %>% 
+    group_by(year) %>% 
+    summarise(pred_count = sum(pred_count, na.rm = T), .groups = "drop")
+
+View(pred_total)
+```
+
+
+```{r}
+nest_pred <- left_join(nest_species, pred_total, by = "year")
+```
+
+```{r}
+ggplot(nest_pred, aes(x = pred_count, y = total_predated)) +
+    geom_point() +
+    facet_wrap(~common_name, scales = "free_y", ncol = 2) +
+    labs(x = "Number of Predators", y = "Number of Eggs Predated") +
+    theme_bw()
+```
+
+
+```{r}
+View(nest_pred)
+```
+
+
+
+
+
